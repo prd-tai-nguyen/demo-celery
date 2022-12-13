@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    command: bash -c "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    volumes:
+      - ./:/app
+    ports:
+      - 8000:8000
+
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
+
+  rabbitmq:
+    image: rabbitmq:latest
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - 5672:5672
+
+  celery_worker:
+    build: .
+    command: celery -A celery_tasks worker --loglevel=info --pool=solo
+    volumes:
+      - .:/app
+    depends_on:
+      - app
+      - redis
+      - rabbitmq
